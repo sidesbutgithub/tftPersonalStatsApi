@@ -23,6 +23,9 @@ class statsViewSet(viewsets.ViewSet):
             matches = res.json()
             
             last20 = []
+
+            units = {}
+
             for i in matches:
                 reqUrl = f"https://{data['region']}.api.riotgames.com/tft/match/v1/matches/{i}?api_key={apiKey}"
                 res = requests.get(reqUrl)
@@ -31,8 +34,15 @@ class statsViewSet(viewsets.ViewSet):
                 for j in matchParticipants:
                     if j['puuid'] == puuid:
                         last20.append(j['placement'])
+                        for unit in j['units']:
+                            unitName = f"{unit["character_id"]}-{unit["tier"]}"
+                            if not(unitName in units):
+                                units[unitName] = {"games": 0, "totalPlacement": 0}
+                            units[unitName]['games'] += 1
+                            units[unitName]['totalPlacement'] += j['placement']
                         break
-            return Response(last20)
+                    
+            return Response({"scores": last20, "units": units})
 
         except:
             print(Exception)
