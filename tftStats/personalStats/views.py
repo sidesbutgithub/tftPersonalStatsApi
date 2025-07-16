@@ -54,4 +54,6 @@ class last20View(APIView):
             return Response({"scores": last20, "units": units})
 
         except:
+            if res:
+                print(res)
             print(Exception)
