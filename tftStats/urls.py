@@ -16,9 +16,9 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path
-from .personalStats.views import statsViewSet
+from .personalStats.views import last20View
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('api/', statsViewSet.as_view({'get': 'list'}))
+    path('api/', last20View.as_view())
 ]

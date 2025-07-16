@@ -1,29 +1,37 @@
-from rest_framework import viewsets
+from rest_framework.views import APIView
 from rest_framework.response import Response
+from django.core.cache import cache
 from dotenv import dotenv_values
 import requests
 import json
 
 # Create your views here.
-
-class statsViewSet(viewsets.ViewSet):
-    def list(self, request):
+class last20View(APIView):
+    def get(self, request):
         data = json.loads(request.body.decode('utf-8'))
         apiKey = dotenv_values(".env")["RIOT_API_KEY"]
         try:
-            reqUrl = f"https://{data['region']}.api.riotgames.com/riot/account/v1/accounts/by-riot-id/{data['playerID']}/{data['playerTag']}?api_key={apiKey}"
-            res = requests.get(reqUrl)
-            res.raise_for_status()
+            puuid = cache.get(f"{data['playerID']}#{data['playerTag']}")
+            
+            if not puuid:
+                reqUrl = f"https://{data['region']}.api.riotgames.com/riot/account/v1/accounts/by-riot-id/{data['playerID']}/{data['playerTag']}?api_key={apiKey}"
+                res = requests.get(reqUrl)
+                res.raise_for_status()
+                puuid = res.json()["puuid"]
+                cache.set(f"{data['playerID']}#{data['playerTag']}", puuid, timeout=None)
 
-            puuid = res.json()["puuid"]
+            cachedStats = cache.get(f"{data['playerID']}#{data['playerTag']}_data")
+
+            if cachedStats:
+                return Response(json.loads(cachedStats))
+
 
             reqUrl = f"https://{data['region']}.api.riotgames.com/tft/match/v1/matches/by-puuid/{puuid}/ids?start=0&count=20&api_key={apiKey}"
             res = requests.get(reqUrl)
             res.raise_for_status()
             matches = res.json()
-            
-            last20 = []
 
+            last20 = []
             units = {}
 
             for i in matches:
@@ -41,7 +49,8 @@ class statsViewSet(viewsets.ViewSet):
                             units[unitName]['games'] += 1
                             units[unitName]['totalPlacement'] += j['placement']
                         break
-                    
+
+            cache.add(f"{data['playerID']}#{data['playerTag']}_data", json.dumps({"scores": last20, "units": units})) #default of 5 minute ttl
             return Response({"scores": last20, "units": units})
 
         except:
