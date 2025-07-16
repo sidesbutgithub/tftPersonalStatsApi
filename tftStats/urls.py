@@ -20,5 +20,5 @@ from .personalStats.views import statsViewSet
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('test/', statsViewSet.as_view({'get': 'list'}))
+    path('api/', statsViewSet.as_view({'get': 'list'}))
 ]
