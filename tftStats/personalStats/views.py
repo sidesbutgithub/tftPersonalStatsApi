@@ -4,7 +4,6 @@ from django.core.cache import cache
 from dotenv import dotenv_values
 import requests
 import json
-from django.http import HttpResponse
 
 # Create your views here.
 class last20View(APIView):
