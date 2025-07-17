@@ -5,10 +5,9 @@ import json
 
 # Create your views here.
 class last20View(APIView):
-    async def get(self, request):
+    async def get(self, request, **kwargs):
         try:
-            request.body = json.loads(request.body.decode('utf-8'))
-            res = await getPuuid(request, getPlayerLast20)
+            res = await getPuuid(request, getPlayerLast20, **kwargs)
             return res
 
         except Exception as err:

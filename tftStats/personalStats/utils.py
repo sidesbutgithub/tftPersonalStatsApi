@@ -4,27 +4,27 @@ import requests
 from dotenv import dotenv_values
 from rest_framework.response import Response
 
-async def getPuuid(request, next):
-    puuid = cache.get(f"{request.body['playerID']}#{request.body['playerTag']}")
+async def getPuuid(request, next, **kwargs):
+    puuid = cache.get(f"{kwargs['playerID']}#{kwargs['playerTag']}")
     if puuid:
         request.puuid = puuid
-        return await next(request)
-    reqUrl = f"https://{request.body['region']}.api.riotgames.com/riot/account/v1/accounts/by-riot-id/{request.body['playerID']}/{request.body['playerTag']}?api_key={dotenv_values(".env")["RIOT_API_KEY"]}"
+        return await next(request, **kwargs)
+    reqUrl = f"https://{kwargs['region']}.api.riotgames.com/riot/account/v1/accounts/by-riot-id/{kwargs['playerID']}/{kwargs['playerTag']}?api_key={dotenv_values(".env")["RIOT_API_KEY"]}"
     res = requests.get(reqUrl)
     res.raise_for_status()
     puuid = res.json()["puuid"]
-    cache.set(f"{request.body['playerID']}#{request.body['playerTag']}", puuid, timeout=None)
+    cache.set(f"{kwargs['playerID']}#{kwargs['playerTag']}", puuid, timeout=None)
     request.puuid = puuid
-    return await next(request)
+    return await next(request, **kwargs)
 
 
-async def getPlayerLast20(request):
-    cachedStats = cache.get(f"{request.body['playerID']}#{request.body['playerTag']}_data")
+async def getPlayerLast20(request, **kwargs):
+    cachedStats = cache.get(f"{kwargs['playerID']}#{kwargs['playerTag']}_data")
 
     if cachedStats:
         return Response(json.loads(cachedStats))
 
-    reqUrl = f"https://{request.body['region']}.api.riotgames.com/tft/match/v1/matches/by-puuid/{request.puuid}/ids?start=0&count=20&api_key={dotenv_values(".env")["RIOT_API_KEY"]}"
+    reqUrl = f"https://{kwargs['region']}.api.riotgames.com/tft/match/v1/matches/by-puuid/{request.puuid}/ids?start=0&count=20&api_key={dotenv_values(".env")["RIOT_API_KEY"]}"
     res = requests.get(reqUrl)
     res.raise_for_status()
     matches = res.json()
@@ -33,7 +33,7 @@ async def getPlayerLast20(request):
     units = {}
 
     for i in matches:
-        reqUrl = f"https://{request.body['region']}.api.riotgames.com/tft/match/v1/matches/{i}?api_key={dotenv_values(".env")["RIOT_API_KEY"]}"
+        reqUrl = f"https://{kwargs['region']}.api.riotgames.com/tft/match/v1/matches/{i}?api_key={dotenv_values(".env")["RIOT_API_KEY"]}"
         res = requests.get(reqUrl)
         res.raise_for_status()
         matchParticipants = res.json()['info']['participants']
@@ -48,5 +48,5 @@ async def getPlayerLast20(request):
                     units[unitName]['totalPlacement'] += j['placement']
                 break
 
-    cache.set(f"{request.body['playerID']}#{request.body['playerTag']}_data", json.dumps({"scores": last20, "units": units})) #default of 5 minute ttl
+    cache.set(f"{kwargs['playerID']}#{kwargs['playerTag']}_data", json.dumps({"scores": last20, "units": units})) #default of 5 minute ttl
     return Response({"scores": last20, "units": units})

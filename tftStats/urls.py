@@ -20,7 +20,7 @@ from .personalStats.views import last20View, testView
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('api/', last20View.as_view()),
+    path('api/<region>/<playerID>/<playerTag>', last20View.as_view()),
     path('test/', testView.as_view())
 ]
 
