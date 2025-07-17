@@ -4,6 +4,7 @@ from django.core.cache import cache
 from dotenv import dotenv_values
 import requests
 import json
+from django.http import HttpResponse
 
 # Create your views here.
 class last20View(APIView):
@@ -12,7 +13,6 @@ class last20View(APIView):
         apiKey = dotenv_values(".env")["RIOT_API_KEY"]
         try:
             puuid = cache.get(f"{data['playerID']}#{data['playerTag']}")
-            
             if not puuid:
                 reqUrl = f"https://{data['region']}.api.riotgames.com/riot/account/v1/accounts/by-riot-id/{data['playerID']}/{data['playerTag']}?api_key={apiKey}"
                 res = requests.get(reqUrl)
@@ -51,9 +51,15 @@ class last20View(APIView):
                         break
 
             cache.add(f"{data['playerID']}#{data['playerTag']}_data", json.dumps({"scores": last20, "units": units})) #default of 5 minute ttl
+
+            
             return Response({"scores": last20, "units": units})
 
-        except:
-            if res:
-                print(res)
-            print(Exception)
+        except Exception as err:
+            return Response(status=500, data={"error": err})
+
+
+
+class testView(APIView):
+    def get(self, request):
+        return Response({"test": "success"})
